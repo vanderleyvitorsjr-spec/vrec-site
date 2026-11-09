@@ -1,3 +1,76 @@
+/* ---------- Depoimentos (dados em assets/depoimentos.js) ---------- */
+(function(){
+  var me = document.querySelector('script[src$="assets/vrec.js"]');
+  var root = me ? me.getAttribute("src").replace(/assets\/vrec\.js$/, "") : "";
+  var TPL = '<div class="wrap"><div class="depo__head"><span class="eyebrow reveal">Depoimentos</span>' +
+    '<h2 id="depo-title" class="reveal">Nas palavras <em>de quem viveu.</em></h2></div>' +
+    '<div class="depo__feature" data-depo-feature></div><div class="depo__list" data-depo-list></div></div>';
+  function esc(t){ return String(t).replace(/[&<>"]/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]; }); }
+  function paras(t){ return String(t).split(/\n\s*\n/).map(function(p){ return "<p>" + esc(p.trim()).replace(/\n/g,"<br>") + "</p>"; }).join(""); }
+  function meta(d){ return [d.tipo, d.local, d.ano, d.fonte].filter(Boolean).map(esc).join(" · "); }
+  function sign(d){
+    var foto = d.foto ? '<img class="depo__foto" src="' + esc(/^(https?:)?\//.test(d.foto) ? d.foto : root + d.foto) + '" alt="' + esc(d.casal) + '" loading="lazy" width="112" height="112">' : "";
+    var film = d.filme ? '<a class="depo__film" href="https://www.youtube.com/watch?v=' + encodeURIComponent(d.filme) + '" target="_blank" rel="noopener">Assistir ao filme <span class="arrow" aria-hidden="true"></span></a>' : "";
+    return '<footer class="depo__sign">' + foto + '<div><cite>' + esc(d.casal) + '</cite>' + (meta(d) ? '<span>' + meta(d) + '</span>' : "") + film + '</div></footer>';
+  }
+  function reveal(sec){
+    var els = sec.querySelectorAll(".reveal");
+    if (!("IntersectionObserver" in window)){ Array.prototype.forEach.call(els, function(e){ e.classList.add("is-in"); }); return; }
+    var io = new IntersectionObserver(function(en){ en.forEach(function(e){ if (e.isIntersecting){ e.target.classList.add("is-in"); io.unobserve(e.target); } }); }, {threshold:.12, rootMargin:"0px 0px -40px 0px"});
+    Array.prototype.forEach.call(els, function(e){ io.observe(e); });
+  }
+  function render(){
+    var data = (window.VREC_DEPOIMENTOS || []).filter(function(d){ return d && d.casal && d.texto; });
+    if (!data.length) return;
+    var secs = document.querySelectorAll("[data-depoimentos]");
+    if (!secs.length){
+      var path = location.pathname.replace(/index\.html$/, "");
+      var contato = document.getElementById("contato");
+      if (!contato || !/(^\/$|\/casamentos\/$)/.test(path)) return;
+      var sec = document.createElement("section");
+      sec.className = "section depo"; sec.id = "depoimentos";
+      sec.setAttribute("aria-labelledby", "depo-title"); sec.setAttribute("data-depoimentos", "");
+      sec.innerHTML = TPL;
+      contato.parentNode.insertBefore(sec, contato);
+      secs = [sec];
+    }
+    var feat = data.filter(function(d){ return d.destaque; })[0] || data[0];
+    var rest = data.filter(function(d){ return d !== feat; });
+    Array.prototype.forEach.call(secs, function(sec){
+      var f = sec.querySelector("[data-depo-feature]"), l = sec.querySelector("[data-depo-list]");
+      f.innerHTML = '<blockquote class="depo__big reveal"><div class="depo__txt">' + paras(feat.texto) + '</div>' + sign(feat) + '</blockquote>';
+      if (rest.length){
+        l.innerHTML = rest.map(function(d, i){
+          return '<blockquote class="depo__card reveal"><div class="depo__txt" id="depo-t' + i + '">' + paras(d.texto) + '</div>' +
+            '<button type="button" class="depo__more" aria-expanded="false" aria-controls="depo-t' + i + '" hidden>Ler depoimento completo</button>' + sign(d) + '</blockquote>';
+        }).join("");
+      } else l.remove();
+      sec.hidden = false;
+      reveal(sec);
+      Array.prototype.forEach.call(sec.querySelectorAll(".depo__card"), function(card){
+        var txt = card.querySelector(".depo__txt"), btn = card.querySelector(".depo__more");
+        requestAnimationFrame(function(){
+          if (txt.scrollHeight > txt.clientHeight + 30){
+            btn.hidden = false;
+            btn.addEventListener("click", function(){
+              var open = card.classList.toggle("is-open");
+              btn.setAttribute("aria-expanded", open);
+              btn.textContent = open ? "Recolher" : "Ler depoimento completo";
+            });
+          } else card.classList.add("is-open");
+        });
+      });
+    });
+  }
+  if (window.VREC_DEPOIMENTOS) render();
+  else {
+    var sc = document.createElement("script");
+    sc.src = root + "assets/depoimentos.js?v=" + Date.now().toString(36).slice(0, -3);
+    sc.onload = render;
+    document.head.appendChild(sc);
+  }
+})();
+
 /* V•REC Films — scripts compartilhados */
 (function(){
   var WHATSAPP = "5573982005990";

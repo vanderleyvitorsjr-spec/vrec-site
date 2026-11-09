@@ -35,29 +35,53 @@
       secs = [sec];
     }
     var feat = data.filter(function(d){ return d.destaque; })[0] || data[0];
-    var rest = data.filter(function(d){ return d !== feat; });
+    var list = [feat].concat(data.filter(function(d){ return d !== feat; }));
+    var n = list.length, pad = function(i){ return (i < 9 ? "0" : "") + (i + 1); };
     Array.prototype.forEach.call(secs, function(sec){
       var f = sec.querySelector("[data-depo-feature]"), l = sec.querySelector("[data-depo-list]");
-      f.innerHTML = '<blockquote class="depo__big reveal"><div class="depo__txt">' + paras(feat.texto) + '</div>' + sign(feat) + '</blockquote>';
-      if (rest.length){
-        l.innerHTML = rest.map(function(d, i){
-          return '<blockquote class="depo__card reveal"><div class="depo__txt" id="depo-t' + i + '">' + paras(d.texto) + '</div>' +
-            '<button type="button" class="depo__more" aria-expanded="false" aria-controls="depo-t' + i + '" hidden>Ler depoimento completo</button>' + sign(d) + '</blockquote>';
-        }).join("");
-      } else l.remove();
+      if (l) l.remove();
+      f.className = "depo__slider reveal";
+      f.setAttribute("role", "region"); f.setAttribute("aria-roledescription", "carrossel"); f.setAttribute("aria-label", "Depoimentos");
+      f.innerHTML = '<div class="depo__track" aria-live="polite">' + list.map(function(d, i){
+          return '<blockquote class="depo__slide' + (i ? "" : " is-active") + '" aria-hidden="' + (i ? "true" : "false") + '">' +
+            '<div class="depo__txt">' + paras(d.texto) + '</div>' +
+            '<button type="button" class="depo__more" aria-expanded="false" hidden>Ler depoimento completo</button>' + sign(d) + '</blockquote>';
+        }).join("") + '</div>' +
+        (n > 1 ? '<div class="depo__nav"><button type="button" class="depo__arrow" data-dir="-1" aria-label="Depoimento anterior"><span aria-hidden="true">&larr;</span></button>' +
+          '<span class="depo__count"><b>01</b> / ' + pad(n - 1) + '</span>' +
+          '<div class="depo__dots">' + list.map(function(d, i){ return '<button type="button" class="depo__dot' + (i ? "" : " is-active") + '" data-go="' + i + '" aria-label="Depoimento ' + (i + 1) + ' de ' + n + ': ' + esc(d.casal) + '"></button>'; }).join("") + '</div>' +
+          '<button type="button" class="depo__arrow" data-dir="1" aria-label="Próximo depoimento"><span aria-hidden="true">&rarr;</span></button></div>' : "");
       sec.hidden = false;
       reveal(sec);
-      Array.prototype.forEach.call(sec.querySelectorAll(".depo__card"), function(card){
-        var txt = card.querySelector(".depo__txt"), btn = card.querySelector(".depo__more");
-        requestAnimationFrame(function(){
-          if (txt.scrollHeight > txt.clientHeight + 30){
+      var slides = f.querySelectorAll(".depo__slide"), dots = f.querySelectorAll(".depo__dot"), count = f.querySelector(".depo__count b"), cur = 0;
+      function go(i){
+        i = (i + n) % n; if (i === cur) return;
+        var old = slides[cur]; old.classList.remove("is-active", "is-open"); old.setAttribute("aria-hidden", "true");
+        var ob = old.querySelector(".depo__more"); if (!ob.hidden){ ob.setAttribute("aria-expanded", "false"); ob.textContent = "Ler depoimento completo"; }
+        slides[i].classList.add("is-active"); slides[i].setAttribute("aria-hidden", "false");
+        dots[cur].classList.remove("is-active"); dots[i].classList.add("is-active");
+        cur = i; count.textContent = pad(i);
+      }
+      Array.prototype.forEach.call(f.querySelectorAll("[data-dir]"), function(b){ b.addEventListener("click", function(){ go(cur + +b.getAttribute("data-dir")); }); });
+      Array.prototype.forEach.call(dots, function(b){ b.addEventListener("click", function(){ go(+b.getAttribute("data-go")); }); });
+      f.addEventListener("keydown", function(e){ if (e.key === "ArrowRight") go(cur + 1); if (e.key === "ArrowLeft") go(cur - 1); });
+      var x0 = null, y0 = 0;
+      f.addEventListener("touchstart", function(e){ x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; }, {passive:true});
+      f.addEventListener("touchend", function(e){
+        if (x0 === null) return; var dx = e.changedTouches[0].clientX - x0, dy = e.changedTouches[0].clientY - y0; x0 = null;
+        if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) go(cur + (dx < 0 ? 1 : -1));
+      }, {passive:true});
+      requestAnimationFrame(function(){
+        Array.prototype.forEach.call(slides, function(sl){
+          var txt = sl.querySelector(".depo__txt"), btn = sl.querySelector(".depo__more");
+          if (txt.scrollHeight > txt.clientHeight + 20){
             btn.hidden = false;
             btn.addEventListener("click", function(){
-              var open = card.classList.toggle("is-open");
+              var open = sl.classList.toggle("is-open");
               btn.setAttribute("aria-expanded", open);
               btn.textContent = open ? "Recolher" : "Ler depoimento completo";
             });
-          } else card.classList.add("is-open");
+          } else sl.classList.add("fits");
         });
       });
     });

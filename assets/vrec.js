@@ -203,7 +203,7 @@
     function play(){
       if (film.classList.contains("is-playing")) return;
       /* Arquivo aberto direto do computador: o YouTube recusa o player (erro 153). */
-      if (location.protocol === "file:"){
+      if (location.protocol === "file:" || film.hasAttribute("data-external")){
         window.open(isShort ? "https://www.youtube.com/shorts/" + id : "https://www.youtube.com/watch?v=" + id, "_blank", "noopener");
         return;
       }

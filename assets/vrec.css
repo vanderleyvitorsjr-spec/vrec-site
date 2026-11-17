@@ -647,3 +647,11 @@ p{margin:0}
 .shorts .film__info{flex-direction:column;align-items:flex-start;gap:6px}
 .shorts .film__type{text-align:left}
 .shorts{scroll-padding-inline:var(--gutter)}
+
+/* ---------- Ordem dos filmes: Liliane & Leandro grande após Paula & Otto (17/11) ---------- */
+@media (min-width:900px){
+  .films:not(.films--grid) .film:nth-child(4){grid-column:1 / -1;margin-top:40px}
+  .films:not(.films--grid) .film:nth-child(5){grid-column:1 / span 5;margin-top:40px}
+  .films:not(.films--grid) .film:nth-child(6){grid-column:6 / span 7;margin-top:0}
+  .films:not(.films--grid) .film:nth-child(7){grid-column:3 / span 8;margin-top:40px}
+}
